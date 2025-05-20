@@ -1,0 +1,18 @@
+# Conda env
+.conda/
+
+# Other folder to ignore
+example_folder/
+face_recognize/
+flask/best.pt
+flask/data.pt
+integrated/best.pt
+integrated/data.pt
+object_detect/
+# Python stuff
+__pycache__/
+*.py[cod]
+*.ipynb_checkpoints/
+
+# VSCode settings
+.vscode/

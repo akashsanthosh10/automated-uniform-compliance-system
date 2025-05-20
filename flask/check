@@ -1,0 +1,243 @@
+from flask import Flask, render_template, Response
+import cv2
+from detection import Detection
+import pathlib
+
+app = Flask(__name__)
+pathlib.PosixPath = pathlib.WindowsPath
+detector = Detection(capture_index=0, model_name='best.pt')
+
+def generate_frames():
+    for frame in detector.vidcap():
+        yield frame
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
+from flask import Flask, render_template, Response
+import cv2
+from detection import Detection
+import pathlib
+
+app = Flask(__name__)
+pathlib.PosixPath = pathlib.WindowsPath
+detector = Detection(capture_index=1, model_name='best.pt')
+
+def generate_frames():
+    for frame in detector.vidcap():
+        yield frame
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
+
+"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Webcam Feed</title>
+</head>
+<body>
+    <h1>Live Webcam Feed</h1>
+    <img src="{{ url_for('video_feed') }}" width="640" height="480">
+</body>
+</html>"""
+
+
+
+
+
+
+
+
+
+
+
+"""
+    def recognize_faces(self, frame, camera_index):
+        
+        #Recognizes faces in a frame using MTCNN and InceptionResnetV1 models.
+        #:param frame: Input frame in numpy array format.
+        #:param camera_index: Index of the camera where the frame is captured.
+        #:return: Detected faces and their embeddings.
+        
+        frame_pil = F.to_pil_image(frame)
+        boxes, _ = self.face_detector.detect(frame_pil)
+        faces = []
+        embeddings = []
+        data = torch.load('integrated\data.pt')
+        embedding_list, name_list = data
+        identity = "Not detected"  # Initialize identity variable
+        if boxes is not None:
+            for i, box in enumerate(boxes):
+                # Crop face from the frame
+                face = frame[int(box[1]):int(box[3]), int(box[0]):int(box[2])]
+                
+                # Convert face to PIL image
+                face_pil = F.to_pil_image(face)
+                resize_transform = Resize((160, 160))
+                # Resize face image
+                face_pil_resized = resize_transform(face_pil)
+                
+                # Extract embeddings
+                emb = self.face_recognizer(F.to_tensor(face_pil_resized).unsqueeze(0))
+                # Compare embeddings with known embeddings
+                min_dist = float('inf')
+                identity = None
+                for idx, known_emb in enumerate(embedding_list):
+                    dist = torch.dist(emb, known_emb)
+                    if dist < min_dist:
+                        min_dist = dist
+                        identity = name_list[idx]
+                if identity:
+                    self.log_tracking(identity, camera_index)  # Store the recognition data
+                cv2.rectangle(frame, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
+                cv2.putText(frame, identity, (int(box[0]), int(box[1]) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        return identity
+    
+"""
+
+
+
+
+
+
+
+
+"""
+
+    def vidcap(self):
+
+        Executes the object detection and face recognition on the video stream.
+        
+        cap = self.get_video_capture()
+        assert cap.isOpened()
+
+        while True:
+            ret, frame = cap.read()
+            assert ret
+
+            frame = cv2.resize(frame, (320, 240))
+
+            # Perform face recognition on the frame
+            camera_index = 1
+            face_results = self.recognize_faces(frame, camera_index)
+            print(face_results)
+            confidence_threshold = 0.5
+
+            if face_results:
+                # If faces are detected, pass the frame through object detection
+                object_results = self.detect_objects(frame)
+                labels, cords = object_results  # Extracting labels from object_results
+                any_valid_detection = False
+                for i in range(len(labels)):
+                    if self.class_to_label(labels[i]) in ['Lanyard', 'Cards'] and cords[i][4] >= confidence_threshold:
+                        any_valid_detection = True
+                        break  # Exit loop if a valid detection is found
+
+                if not any_valid_detection:
+                    # No valid detections (lanyard or card) above confidence threshold
+                    missing_item = "Both lanyard and card"
+                    fine_amount = 100
+                    reason = "Missing required items (lanyard and card)"
+                    # self.append_fine_details(missing_item, fine_amount, reason)
+                    self.append_fine_details(face_results[0],reason, self.capture_index, fine_amount)
+                    print(f"No lanyard or card detected with high confidence")
+                else:
+                    # If objects are detected, plot them on the frame
+                    frame = self.plot_boxes(object_results, frame)  
+
+            start_time = timeit.default_timer()
+
+            # Display the processed frame (optional)
+            cv2.imshow('Video', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            end_time = timeit.default_timer()
+
+            # fps = 1 / np.round(end_time - start_time, 2)
+            # cv2.putText(frame, f'FPS: {int(fps)}', (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+        cap.release()
+        cv2.destroyAllWindows()
+
+
+# Create a new object but don't invoke it here.
+#detector = Detection(capture_index=0, model_name='best.pt')
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Webcam Feed</title>
+    <style>
+        .notification {
+            background-color: #f2f2f2;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Webcam Feed</h1>
+    <img src="{{ url_for('video_feed') }}" width="640" height="480">
+    <div class="camera-info">
+        Something you want to print under the camera feed
+    </div>
+    {% if message %}
+    <div class="notification">
+        {{ message }}
+    </div>
+    {% endif %}
+</body>
+</html>
+
+"""
